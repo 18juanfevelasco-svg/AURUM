@@ -1,0 +1,17 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Anillo dorado -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#D2AE74"
+        android:strokeWidth="1.6"
+        android:pathData="M54,23 A31,31 0 1,1 54,85 A31,31 0 1,1 54,23 Z" />
+    <!-- Monograma A -->
+    <path
+        android:fillColor="#D2AE74"
+        android:fillType="evenOdd"
+        android:pathData="M54,33 L69,75 L63,75 L59.6,65.5 L48.4,65.5 L45,75 L39,75 Z M54,46 L57.9,59.5 L50.1,59.5 Z" />
+</vector>
