@@ -65,15 +65,21 @@ object NotificationParser {
     private val amountWithSymbol = Regex("""(?:\$|cop|usd)\s?([0-9][0-9.,]*[0-9]|[0-9])""", RegexOption.IGNORE_CASE)
     private val amountWithWord = Regex("""([0-9][0-9.,]*[0-9])\s?(?:pesos|cop)\b""", RegexOption.IGNORE_CASE)
 
+    /** Montos sin "$": "compra por 30,000", "valor de 45.900" */
+    private val amountAfterWord = Regex(
+        """\b(?:por|valor(?:\s+de)?|monto(?:\s+de)?|de)\s+([0-9]{1,3}(?:[.,][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]{4,}(?:[.,][0-9]{1,2})?)\b""",
+        RegexOption.IGNORE_CASE
+    )
+
     private const val STOP =
-        """(?=\s+con\s|\s+el\s+\d|\s+el\s+dia|\s+a\s+las\s|\s+\d{1,2}:\d{2}|\s+\d{1,2}/\d{1,2}|\s+t\.\s?(?:cred|deb)|\s+tarjeta|\s+desde|\s+por\s|\s+en\s|\s*[,;]|\.\s|\.$|\n|$)"""
+        """(?=\s*[¿?!]|\s+llam|\s+con\s|\s+el\s+\d|\s+el\s+dia|\s+a\s+las\s|\s+\d{1,2}:\d{2}|\s+\d{1,2}/\d{1,2}|\s+t\.\s?(?:cred|deb)|\s+tarjeta|\s+desde|\s+por\s|\s+en\s|\s*[,;]|\.\s|\.$|\n|$)"""
 
     private val enRegex = Regex("""\ben\s+([^\n]+?)$STOP""", RegexOption.IGNORE_CASE)
     private val aRegex = Regex("""\ba\s+([^\n]+?)$STOP""", RegexOption.IGNORE_CASE)
     private val deRegex = Regex("""\bde\s+([^\n$]+?)$STOP""", RegexOption.IGNORE_CASE)
 
     private val cardRegex = Regex(
-        """(?:\*+|\bterminad[ao]\s+en\s+|\btermina\s+en\s+|\bfinalizad[ao]\s+en\s+|x{2,})\s?(\d{4})\b""",
+        """(?:\*+|\bterminad[ao]\s+en\s+|\btermina\s+en\s+|\bfinalizad[ao]\s+en\s+|x{2,}|\btarjeta\s+(?:de\s+)?(?:d[eé]bito|cr[eé]dito)?\s*(?:no\.?\s*|n[°º]\s*)?)\s?(\d{4})\b""",
         RegexOption.IGNORE_CASE
     )
 
@@ -121,7 +127,7 @@ object NotificationParser {
             else -> return null
         }
 
-        val m = amountWithSymbol.find(text) ?: amountWithWord.find(text) ?: return null
+        val m = amountWithSymbol.find(text) ?: amountWithWord.find(text) ?: amountAfterWord.find(text) ?: return null
         val amount = parseNumber(m.groupValues[1]) ?: return null
         if (amount <= 0.0) return null
 
@@ -181,6 +187,10 @@ object NotificationParser {
             s = if (before.length >= 3) before else s.replace('*', ' ')
         }
         s = s.replace(Regex("\\s+"), " ").trim(' ', '.', ',', '-', ':')
+        // Quita la dirección: "EDS TERPEL CALLE 127 FBOGOTA" -> "EDS TERPEL"
+        val addr = Regex("""\s(?:calle|cll|cl|carrera|cra|kr|kra|av|avenida|avda|diagonal|dg|transversal|tv|autopista|km)\b.*""", RegexOption.IGNORE_CASE)
+        val cut = s.replace(addr, "").trim()
+        if (cut.length >= 3) s = cut
         if (s.length > 32) s = s.take(32).trim()
         return s.split(' ').joinToString(" ") { w ->
             if (w.length <= 3 && w.any { it.isDigit() }) w.uppercase()
